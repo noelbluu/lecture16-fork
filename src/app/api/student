@@ -1,0 +1,80 @@
+import { DB } from "@/app/libs/DB"
+import { zStudentPostBody, zStudentPutBody } from "@/app/libs/schema"
+import { NextResponse } from "next/server"
+
+export const GET = async (Request) => {
+    const program = Request.nextUrl.searchParams.get("program")
+    const students = DB.students
+
+    let filtered = students
+    if (program !== null) {
+        filtered = filtered.filter((student) =>
+            student.program === program
+        )
+    }
+
+    return NextResponse.json({ ok: true, filtered })
+}
+
+export const POST = async (Request) => {
+    const body = await Request.json()
+
+    const parseResult = zStudentPostBody.safeParse(body)
+    if (parseResult.success === false) {
+        return NextResponse.json({
+            ok: false,
+            message: parseResult.error.issues[0].message
+        }, {
+            status: 400
+        })
+    }
+
+    const foundIndex = DB.students.findIndex((student) =>
+        student.studentId === body.studentId
+    )
+    if (foundIndex >= 0) {
+        return NextResponse.json({
+            ok: false,
+            message: "Student Id already exists"
+        }, {
+            status: 400
+        })
+    }
+
+    DB.students.push(body)
+
+    return NextResponse.json({
+        ok: true,
+        message: `Student Id ${body.studentId} has been added`
+    })
+}
+
+export const PUT = async (Request) => {
+    const body = await Request.json()
+
+    const parseResult = zStudentPutBody.safeParse(body)
+    if (parseResult.success === false) {
+        return NextResponse.json({
+            ok: false,
+            message: parseResult.error.issues[0].message
+        }, {
+            status: 400
+        })
+    }
+
+    const foundIndex = DB.students.findIndex((student) =>
+        student.studentId === body.studentId
+    )
+    if (foundIndex === -1) {
+        return NextResponse.json({
+            ok: false,
+            message: "Student Id already exists"
+        }, {
+            status: 400
+        })
+    }
+
+    DB.students[foundIndex] = { ...DB.students[foundIndex], ...body }
+
+    return NextResponse.json({ ok: true })
+}
